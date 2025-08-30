@@ -46,9 +46,24 @@ class News(Base):
 
     )
 
-    def __repr__(self):
-        return f"<News(event_id='{self.event_id}', title='{self.title}')>"
+
+class Coin(Base):
+    __tablename__ = 'coins'
     
+    id: Mapped[int] = mapped_column(primary_key=True)
+    rank_type: Mapped[str]
+    ticker: Mapped[str] 
+    name: Mapped[str]
+    price: Mapped[str] 
+    market_cup: Mapped[str]
+    price_change_24hm: Mapped[str]
+    update_at: Mapped[datetime] = mapped_column(
+        server_default=text("TIMEZONE('utc', now())"),
+        onupdate=datetime.now(UTC) 
+
+    )
+    
+
 async def create_tables():
     """Создает таблицы в базе данных"""
     async with engine.begin() as conn:
