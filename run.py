@@ -10,8 +10,9 @@ from aiogram.client.default import DefaultBotProperties
 from config import TG_TOKEN
 from app.handlers import router
 from database.models import create_tables, drop_database
+from services.crypto_price import parse_top_coins, parse_top_gainers, parse_top_losers
 from services.news_parser import fetch_economic_calendar
-from database.requests import save_events_to_db
+from database.requests import save_events_to_db, save_coins_to_bd
 
 bot = Bot(token=TG_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
@@ -47,13 +48,19 @@ async def scheduled_parsing_news():
             print(f"{datetime.now()}: Запуск планового парсинга...")
             
             # Очищаем базу данных перед новым парсингом
-            await drop_database()
-            print("База данных очищена")
+            # await drop_database()
+            # print("База данных очищена")
             
             # Создаем таблицы заново
             await create_tables()
             print("Таблицы созданы заново")
-            
+
+            # Парсим монеты
+            top_coins = parse_top_coins()
+            top_gainers = parse_top_gainers()
+            top_losers = parse_top_losers()
+            await save_coins_to_bd(top_coins, top_gainers, top_losers)
+
             # Парсим события
             events = await fetch_economic_calendar()
             if events:

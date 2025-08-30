@@ -24,7 +24,6 @@ def format_event(event):
         '''
     )
 
-    
 
 def format_daily(today_events, tomorrow_events):
     current_time = datetime.now().strftime("%H:%M")
@@ -212,12 +211,28 @@ def sort_week_events(week_events, stars):
     return base_text
 
 
-def format_crypto_prices(price_data, period = '24h'):
-    text = "💰 <b>Котировки криптовалют</b>\n\n"
+def format_crypto_prices(coins_data, offset=0, limit=20):
+    if not coins_data:
+        return "Нет данных о криптовалютах"
     
-    for coin in price_data:
-        price = price_data[coin].get('usd')
-        change = price_data[coin].get(f'usd_{period}_change', 0)
-        arrow = "📈" if change >= 0 else "📉"
-        text += f"{coin}: ${price} | {arrow} {change:+.2f}% за {period}\n"
+    coins_to_show = coins_data[offset:offset+limit]
+    
+    if not coins_to_show:
+        return "Больше нет монет для показа"
+    
+    update_at = coins_to_show[0]['update_at']
+    text = f"💰 <b>Котировки криптовалют </b> (обновлено {update_at})\n\n"
+    text += f"<i>Показано {offset+1}-{offset+len(coins_to_show)} из {len(coins_data)}</i>\n\n"
+    
+    for num, coin in enumerate(coins_to_show, start=offset+1):
+        ticker = coin['ticker']
+        name = coin['name']
+        price = coin['price']
+        market_cup = coin['market_cup']
+        price_change_24hm = coin['price_change_24hm']
+        
+        change_emoji = "📈" if float(price_change_24hm.replace('%', '').replace(',', '.').replace('−', '-')) >= 0 else "📉"
+        
+        text += f"{num}) {name} ({ticker}): ${price} | {market_cup} | {change_emoji} {price_change_24hm} за 24ч\n"
+        
     return text

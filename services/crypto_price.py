@@ -1,18 +1,121 @@
-from datetime import datetime
+import requests
+
+from bs4 import BeautifulSoup as bs 
 
 
-import aiohttp
+
+def parse_top_coins(limit=100):
+    top_coins = []
+
+    url = "https://ru.tradingview.com/markets/cryptocurrencies/prices-all/"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+
+    if response.status_code != 200:
+        print('Ошибка при загрузке страницы')
+        return 0
+    
+    soup = bs(response.text, 'html.parser')
+
+    table_coins = soup.find('tbody')
+    rows = table_coins.find_all('tr')
+    
+    count = 0
+    for row in rows:
+        top_coins.append({
+            'rank_type': 'top_coin',
+            'ticker':row.find('a', class_='apply-common-tooltip tickerNameBox-GrtoTeat tickerName-GrtoTeat').text.strip(),
+            'name': row.find('sup', class_='apply-common-tooltip tickerDescription-GrtoTeat').text.strip(),
+            'market_cup': row.select('td', class_='cell-RLhfr_y4 left-RLhfr_y4')[4].text.strip(),
+            'change_price': row.select('td', class_='cell-RLhfr_y4 left-RLhfr_y4')[3].text.strip(),
+            'price': row.select('td', class_='cell-RLhfr_y4 left-RLhfr_y4')[2].text.strip()
+        })
+        
+        count += 1
+        if count == limit or count == 100:
+            break
+
+    return top_coins
+    
+
+def parse_top_gainers(limit=100):
+    top_gainers = []
+
+    url = "https://www.tradingview.com/markets/cryptocurrencies/prices-gainers/"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+
+    with open('output.html', 'w', encoding='utf-8') as file:
+        file.write(response.text)
+
+    if response.status_code != 200:
+        print('Ошибка при загрузке страницы')
+        return 0
+    
+    soup = bs(response.text, 'html.parser')
+
+    table_coins = soup.find('tbody')
+    rows = table_coins.find_all('tr')
+
+    count = 0
+    for row in rows:
+        top_gainers.append({
+            'rank_type': 'gainer',
+            'ticker':row.find('a', class_='apply-common-tooltip tickerNameBox-GrtoTeat tickerName-GrtoTeat').text.strip(),
+            'name': row.find('sup', class_='apply-common-tooltip tickerDescription-GrtoTeat').text.strip(),
+            'market_cup': row.select('td', class_='cell-RLhfr_y4 left-RLhfr_y4')[4].text.strip(),
+            'change_price': row.select('td', class_='cell-RLhfr_y4 left-RLhfr_y4')[3].text.strip(),
+            'price': row.select('td', class_='cell-RLhfr_y4 left-RLhfr_y4')[2].text.strip()
+        })
+    
+        if count == limit or count == 100:
+            break
+
+    return top_gainers
 
 
+def parse_top_losers(limit=100):
+    top_losers = []
 
-async def get_crypto_data(coin: str):
-    url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_last_updated_at=true"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            data = await response.json()
-             
-            last_updated = data[coin].get('last_updated_at')
-            if last_updated:
-                data[coin]['last_updated'] = datetime.fromtimestamp(last_updated).strftime('%H:%M:%S')
-            
-            return data[coin]
+    url = "https://www.tradingview.com/markets/cryptocurrencies/prices-losers/"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+
+    with open('output.html', 'w', encoding='utf-8') as file:
+        file.write(response.text)
+
+    if response.status_code != 200:
+        print('Ошибка при загрузке страницы')
+        return 0
+    
+    soup = bs(response.text, 'html.parser')
+
+    table_coins = soup.find('tbody')
+    rows = table_coins.find_all('tr')
+
+    count = 0
+    for row in rows:
+        top_losers.append({
+            'rank_type': 'loser',
+            'ticker':row.find('a', class_='apply-common-tooltip tickerNameBox-GrtoTeat tickerName-GrtoTeat').text.strip(),
+            'name': row.find('sup', class_='apply-common-tooltip tickerDescription-GrtoTeat').text.strip(),
+            'market_cup': row.select('td', class_='cell-RLhfr_y4 left-RLhfr_y4')[4].text.strip(),
+            'change_price': row.select('td', class_='cell-RLhfr_y4 left-RLhfr_y4')[3].text.strip(),
+            'price': row.select('td', class_='cell-RLhfr_y4 left-RLhfr_y4')[2].text.strip()
+        })
+    
+        if count == limit or count == 100:
+            break
+
+    return top_losers
+
+

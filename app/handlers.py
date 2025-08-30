@@ -1,12 +1,18 @@
 from aiogram import Router,F
 from aiogram.filters import CommandStart
 from aiogram.types import Message,CallbackQuery
-
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 
 import app.keyboards as kb
-from services.crypto_price import get_crypto_data
 from utils.formatters import *
 from database.requests import get_today_events, get_tomorrow_events, get_week_events
+from database.requests import get_coins
+
+
+
+class CryptoState(StatesGroup):
+    waiting_for_more = State()
 
 
 
@@ -19,14 +25,72 @@ async def cmd_start(message: Message):
 
 @router.message(F.text == 'Котировки')
 async def get_crypto_price(message: Message):
-    btc_info = await get_crypto_data('bitcoin')  
-    eth_info = await get_crypto_data('ethereum')
-    ton_info = await get_crypto_data('the-open-network')
+    await message.answer('Какие монеты хотите посмотреть?', reply_markup=kb.btn_sort_coins)
+
+
+@router.callback_query(F.data.startswith('opt_'))
+async def get_coins_handlers(callback: CallbackQuery, state: FSMContext):
+    await callback.message.delete()
+
+    action = callback.data[4:]
+
+    coins_data = await get_coins(action)
+
+    await state.update_data(
+        coins_data=coins_data,
+        offset=0,
+        action=action
+    )
+
+    message = format_crypto_prices(coins_data, offset=0, limit=20)
     
-    formatted_message = format_crypto_prices({'₿ <b>Bitcoin</b> (BTC)': btc_info, 
-                                              '⟠ <b>Ethereum</b> (ETH)': eth_info, 
-                                              '₮ <b>Toncoin</b> (TON)': ton_info}) 
-    await message.answer(formatted_message, parse_mode="HTML")
+    await callback.message.answer(message, parse_mode="HTML", reply_markup=kb.btn_coins_more)
+    await callback.answer('')
+
+
+@router.callback_query(F.data == 'more_coins')
+async def get_more_coins(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    coins_data = data.get('coins_data', [])
+    current_offset = data.get('offset', 0)
+
+    new_offset = current_offset + 20
+    
+    if new_offset >= len(coins_data):
+        await callback.answer("Больше нет монет для показа")
+        return 0
+    
+    message = format_crypto_prices(coins_data, offset=new_offset, limit=20)
+    
+    await state.update_data(offset=new_offset)
+    
+    await callback.message.edit_text(message, parse_mode="HTML", reply_markup=kb.btn_coins_more)
+    await callback.answer('')
+
+
+@router.callback_query(F.data == 'prev_coins')
+async def get_prev_coins(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    coins_data = data.get('coins_data', [])
+    current_offset = data.get('offset', 0)
+
+    new_offset = current_offset - 20
+
+    if new_offset < 0:
+        await callback.answer("Это первая страница")
+        return 0
+    
+    message = format_crypto_prices(coins_data, offset=new_offset, limit=20)
+
+    await state.update_data(offset=new_offset)
+
+    await callback.message.edit_text(message, parse_mode="HTML", reply_markup=kb.btn_coins_more)
+    await callback.answer('')
+
+
+@router.callback_query(F.data == 'back_to_quotes')
+async def get_crypto_price(callback: CallbackQuery):
+    await callback.message.edit_text('Какие монеты хотите посмотреть?', reply_markup=kb.btn_sort_coins)
 
 
 @router.message(F.text == 'Экономический календарь')
@@ -35,7 +99,7 @@ async def get_part_news(message: Message):
     
 
 @router.callback_query(F.data == 'calendar_today')
-async def get_today_news(callback: CallbackQuery):
+async def get_today_news(callback: CallbackQuery, state: FSMContext):
     today_events = await get_today_events()
 
     print(f"Событий на неделю: {len(today_events)}")
@@ -52,7 +116,7 @@ async def get_today_news(callback: CallbackQuery):
 
 
 @router.callback_query(F.data == 'calendar_tomorrow')
-async def get_tomorrow_news(callback: CallbackQuery):
+async def get_tomorrow_news(callback: CallbackQuery, state: FSMContext):
     tomorrow_events = await get_tomorrow_events()
 
     print(f"Событий на неделю: {len(tomorrow_events)}")
@@ -69,7 +133,7 @@ async def get_tomorrow_news(callback: CallbackQuery):
 
 
 @router.callback_query(F.data == 'calendar_week')
-async def get_week_news(callback: CallbackQuery):
+async def get_week_news(callback: CallbackQuery, state: FSMContext):
     week_events = await get_week_events()
 
     print(f"Событий на неделю: {len(week_events)}")

@@ -23,7 +23,7 @@ def create_stars_keyboard(period: str) -> InlineKeyboardMarkup:
         ]
     ])
 
-# Создание клавиатур
+
 btn_sort_by_stars_today = create_stars_keyboard("today")
 btn_sort_by_stars_tomorrow = create_stars_keyboard("tomorrow")
 btn_sort_by_stars_week = create_stars_keyboard("week")
@@ -44,3 +44,30 @@ btn_main = ReplyKeyboardMarkup(keyboard=[
                         resize_keyboard=True)
 
 
+btn_sort_coins = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Топ монет по капитализации", callback_data="opt_top_coins"),
+            InlineKeyboardButton(text="Топ по росту", callback_data="opt_gainers"),
+            InlineKeyboardButton(text="Топ монет по падению", callback_data="opt_losers")
+        ]
+    ])
+
+
+btn_coins_more = InlineKeyboardMarkup(inline_keyboard=[
+    [
+        InlineKeyboardButton(text="◀️ Назад", callback_data="prev_coins"),
+        InlineKeyboardButton(text="Еще", callback_data="more_coins")
+    ],
+    [
+        InlineKeyboardButton(text="◀️ В меню", callback_data="back_to_quotes")
+    ]
+])
+
+btn_coins_no_more = InlineKeyboardMarkup(inline_keyboard=[
+    [
+        InlineKeyboardButton(text="◀️ Назад", callback_data="prev_coins")
+    ],
+    [
+        InlineKeyboardButton(text="◀️ В меню", callback_data="back_to_quotes")
+    ]
+])
