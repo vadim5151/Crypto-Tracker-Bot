@@ -2,83 +2,56 @@ from datetime import datetime, UTC, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.dialects.postgresql import insert
+
 
 
 from database.models import async_session, News, Coin
 
 
 
+from datetime import datetime, timezone
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy import select, update
+from contextlib import asynccontextmanager
+
+
 async def save_events_to_db(events_data):
-    """Сохраняет события в базу данных из новой структуры данных"""
     if not events_data:
-        print("Нет данных для сохранения")
         return 0
-    
-    saved_count = 0
+
     async with async_session() as session:
         try:
-            # Проходим по всем периодам (today, tomorrow, week)
             for period_name, events_list in events_data.items():
-                # Проходим по всем событиям в периоде
                 for event_data in events_list:
                     event_id = event_data.get('id')
-                    
                     if not event_id:
-                        print("Пропускаем событие без ID")
                         continue
-                    
-                    # Проверяем, существует ли уже событие с таким event_id
-                    existing_event = await session.execute(
-                        select(News).where(News.event_id == event_id)
-                    )
-                    existing_event = existing_event.scalar_one_or_none()
-                    
-                    if existing_event:
-                        # Обновляем существующее событие
-                        existing_event.event_date = event_data.get('date')
-                        existing_event.event_time = event_data.get('time')
-                        existing_event.currency = event_data.get('currency')
-                        existing_event.importance = event_data.get('importance')
-                        existing_event.event_name = event_data.get('title')
-                        existing_event.actual = event_data.get('actual')
-                        existing_event.forecast = event_data.get('forecast')
-                        existing_event.previous = event_data.get('prev')
-                        existing_event.update_at = datetime.now(UTC)
-                    else:
-                        # Создаем новое событие
-                        news_data = {
-                            'event_id': event_id,
-                            'event_date': event_data.get('date'),
-                            'event_time': event_data.get('time'),
-                            'currency': event_data.get('currency'),
-                            'importance': event_data.get('importance'),
-                            'event_name': event_data.get('title'),
-                            'actual': event_data.get('actual'),
-                            'forecast': event_data.get('forecast'),
-                            'previous': event_data.get('prev')
-                        }
-                        
-                        # Удаляем None значения
-                        news_data = {k: v for k, v in news_data.items() if v is not None}
-                        
-                        # Создаем новое событие
-                        new_event = News(**news_data)
-                        session.add(new_event)
-                    
-                    saved_count += 1
-            
+
+                    # Создаем statement для вставки с обработкой конфликта
+                    stmt = insert(News).values(
+                        event_id=event_id,
+                        event_date=event_data.get('date'),
+                        event_time=event_data.get('time'),
+                        currency=event_data.get('currency'),
+                        importance=event_data.get('importance'),
+                        event_name=event_data.get('title'),
+                        actual=event_data.get('actual'),
+                        forecast=event_data.get('forecast'),
+                        previous=event_data.get('prev'),
+                        update_at=datetime.now(UTC).replace(tzinfo=None)
+                    ).on_conflict_do_nothing(index_elements=['event_id'])
+
+                    await session.execute(stmt)
+
             await session.commit()
-            print(f"Успешно сохранено событий: {saved_count}")
-            return saved_count
-            
+            print("Данные успешно сохранены")
         except Exception as e:
             await session.rollback()
-            print(f"Ошибка при сохранении в БД: {e}")
-            import traceback
-            traceback.print_exc()
-            return 0
+            print(f"Ошибка: {e}")
 
-
+ 
 async def get_today_events():
     async with async_session() as session:
         all_events = []

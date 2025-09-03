@@ -3,27 +3,27 @@ from datetime import datetime
 
 
 def format_event(event):
-    if 'event_date' in event:
-        date = event['event_date']
-    else:
-        date = ''
-
     time = event['event_time']
     currency = event['currency']
     stars = '★' * event['importance']
     event_name = event['event_name']
+    actual = event['actual']
     forecast = event['forecast']
     prev = event['prev']
+    
+    # Добавляем дату, если она есть в событии
+    date_str = ''
+    if 'event_date' in event and event['event_date']:
+        date_str = f" ({event['event_date']})"
    
     return (
-        f'''⏰ <b>{time}</b> {date}
-   🏦Валюта: {currency}
-   ⭐Важность: {stars}
+        f'''⏰ <b>{time}</b>{date_str}
+   🏦 Валюта: {currency}
+   ⭐ Важность: {stars}
    📊 Событие: {event_name}
    📈 Прогноз: {forecast} | Пред.: {prev}
         '''
     )
-
 
 def format_daily(today_events, tomorrow_events):
     current_time = datetime.now().strftime("%H:%M")
@@ -54,161 +54,161 @@ def format_daily(today_events, tomorrow_events):
     
     return text+'...\n Посмотреть больше событий'
 
+def split_text(text: str, max_length: int = 4096) -> list[str]:
+    """
+    Разбивает текст на части заданной максимальной длины.
+    Старается разбивать по переносам строк, чтобы не обрывать предложения.
+    """
+    if len(text) <= max_length:
+        return [text]
 
-def format_events_today(today_events, max_length=4096):
-    if today_events:
-        update_at = today_events[0]['update_at']
+    parts = []
+    while text:
+        # Если оставшийся текст уже короткий
+        if len(text) <= max_length:
+            parts.append(text)
+            break
 
-        base_text = f"📊 <b>Экономический календарь</b> (обновлено {update_at})\n\n"
-    else:
-        base_text = f"📊 <b>Экономический календарь</b>\n\n"
+        # Находим место для раздела: последний перенос строки в пределах лимита
+        split_index = text.rfind('\n', 0, max_length)
+        # Если не нашли перенос, делим по границе символа
+        if split_index == -1:
+            split_index = max_length
+
+        part = text[:split_index]
+        parts.append(part)
+        text = text[split_index:].lstrip()  # Убираем ведущие пробелы с начала новой части
+
+    return parts
+
+
+def format_events_today(events, offset=0, limit=20, max_length=4096):
+    if not events:
+        return ["📅 <b>На сегодня:</b> нет событий"]
+
+    events_to_show = events[offset:offset + limit]
+    if not events_to_show:
+        return ["Больше нет событий для показа"]
+
+    update_at = events_to_show[0]['update_at']
+    base_text = f"📊 <b>Экономический календарь</b> (обновлено {update_at})\n\n"
+    base_text += f"📅 <b>Сегодня:</b> показано {offset+1}-{offset+len(events_to_show)} из {len(events)}\n\n"
+
+    event_texts = []
+    for event in events_to_show:
+        event_str = f"• {format_event(event)}\n"
+        event_texts.append(event_str)
+
+    # Собираем все тексты событий в один большой текст
+    full_text = base_text + "".join(event_texts)
+
+    # Разбиваем на части, если необходимо
+    return split_text(full_text, max_length)
+
+
+def format_events_tomorrow(events, offset=0, limit=20, max_length=4096):
+    if not events:
+        return ["📅 <b>На завтра:</b> нет событий"]
+
+    events_to_show = events[offset:offset + limit]
+    if not events_to_show:
+        return ["Больше нет событий для показа"]
+
+    update_at = events_to_show[0]['update_at']
+    base_text = f"📊 <b>Экономический календарь</b> (обновлено {update_at})\n\n"
+    base_text += f"📅 <b>Завтра:</b> показано {offset+1}-{offset+len(events_to_show)} из {len(events)}\n\n"
+
+    event_texts = []
+    for event in events_to_show:
+        event_str = f"• {format_event(event)}\n"
+        event_texts.append(event_str)
+
+    # Собираем все тексты событий в один большой текст
+    full_text = base_text + "".join(event_texts)
+
+    # Разбиваем на части, если необходимо
+    return split_text(full_text, max_length)
+
+
+def format_events_week(events, offset=0, limit=20, max_length=4096):
+    if not events:
+        return ["📅 <b>На неделе:</b> нет событий"]
+
+    events_to_show = events[offset:offset + limit]
+    if not events_to_show:
+        return ["Больше нет событий для показа"]
+
+    update_at = events_to_show[0]['update_at']
+    base_text = f"📊 <b>Экономический календарь</b> (обновлено {update_at})\n\n"
+    base_text += f"📅 <b>На неделе:</b> показано {offset+1}-{offset+len(events_to_show)} из {len(events)}\n\n"
+
+    event_texts = []
+    for event in events_to_show:
+        event_str = f"• {format_event(event)}\n"
+        event_texts.append(event_str)
+
+    # Собираем все тексты событий в один большой текст
+    full_text = base_text + "".join(event_texts)
+
+    # Разбиваем на части, если необходимо
+    return split_text(full_text, max_length)
+
+
+def sort_today_events(events, importance, offset=0, limit=20):
+    if not events:
+        return "📅 <b>На сегодня:</b> нет событий с важностью " +'⭐'* importance
     
-    if today_events and today_events[0]:
-        text =  f"📅 <b>Сегодня:</b> {len(today_events)} событий\n\n"
-        
-        parts = []
-        
-        for event in today_events:
-            event_text = f"• {format_event(event)}\n"
-            
-            if len(text + event_text) > max_length:
-                parts.append(text)
-                text = base_text + f"📅 <b>Сегодня (продолжение):</b>\n\n{event_text}"
-            else:
-                text += event_text
-
-        parts.append(text)
-        
-        return parts
-    else:
-        return [base_text + "📅 <b>На сегодня:</b> нет событий"]
-
-
-def format_events_tomorrow(tomorrow_events, max_length=4096):
-    if tomorrow_events:
-        update_at = tomorrow_events[0]['update_at']
-
-        base_text = f"📊 <b>Экономический календарь</b> (обновлено {update_at})\n\n"
-    else:
-        base_text = f"📊 <b>Экономический календарь</b>\n\n"
-
-    if tomorrow_events and tomorrow_events[0]:
-        text = base_text + f"📅 <b>Завтра:</b> {len(tomorrow_events)} событий\n\n"
-        
-        parts = []
-        
-        for event in tomorrow_events:
-            event_text = f"• {format_event(event)}\n"
-            
-            if len(text + event_text) > max_length:
-                parts.append(text)
-                text = base_text + f"📅 <b>Завтра (продолжение):</b>\n\n{event_text}"
-            else:
-                text += event_text
-
-        parts.append(text)
-        
-        return parts
-    else:
-        return [base_text + "📅 <b>На завтра:</b> нет событий"]
-
-
-def format_events_week(week_events, max_length=4096):
-    if week_events:
-        update_at = week_events[0]['update_at']
-
-        base_text = f"📊 <b>Экономический календарь</b> (обновлено {update_at})\n\n"
-    else:
-        base_text = f"📊 <b>Экономический календарь</b>\n\n"
-
-    if week_events and week_events[0]:
-        text = base_text + f"📅 <b>На неделю:</b> {len(week_events)} событий\n\n"
-        
-        parts = []
-        
-        for event in week_events:
-            event_text = f"• {format_event(event)}\n"
-            
-            if len(text + event_text) > max_length:
-                parts.append(text)
-                text = base_text + f"📅 <b>На неделю (продолжение):</b>\n\n{event_text}"
-            else:
-                text += event_text
-
-        parts.append(text)
-        
-        return parts
-    else:
-        return [base_text + "📅 <b>На неделю:</b> нет событий"]
+    events_to_show = events[offset:offset+limit]
     
-
-def sort_tomorrow_events(tomorrow_events, stars):
-    if tomorrow_events:
-        update_at = tomorrow_events[0]['update_at']
-
-        base_text = f"📊 <b>Экономический календарь</b> (обновлено {update_at})\n\n"
-    else:
-        base_text = f"📊 <b>Экономический календарь</b>\n\n"
-
-    if tomorrow_events and tomorrow_events[0]:
-        tomorrow_events_by_stars = [event for event in tomorrow_events if event['importance'] == stars]
-
-        base_text += f"📅 <b>:</b> {len(tomorrow_events_by_stars)} {'⭐' * stars} событий\n"
-
-        for event in tomorrow_events_by_stars:
-            base_text += f"• {format_event(event)}\n"
-        base_text += "\n"
-
-    else:
-        base_text += f"📅 <b>На завтра:</b> нет {'⭐' * stars} событий\n\n"
-
-    return base_text
+    if not events_to_show:
+        return "Больше нет событий для показа"
+    
+    update_at = events_to_show[0]['update_at']
+    text = f"📊 <b>Экономический календарь</b> (обновлено {update_at})\n\n"
+    text += f"📅 <b>Сегодня:</b> показано {offset+1}-{offset+len(events_to_show)} из {len(events)} событий с важностью {'⭐' * importance}\n\n"
+    
+    for event in events_to_show:
+        text += f"• {format_event(event)}\n"
+        
+    return text
 
 
-def sort_today_events(today_events, stars):
-    if today_events:
-        update_at = today_events[0]['update_at']
-
-        base_text = f"📊 <b>Экономический календарь</b> (обновлено {update_at})\n\n"
-    else:
-        base_text = f"📊 <b>Экономический календарь</b>\n\n"
-
-    if today_events and today_events[0]:
-        today_events_by_stars = [event for event in today_events if event['importance'] == stars]
-
-        base_text += f"📅 <b>:</b> {len(today_events_by_stars)} {'⭐' * stars} событий\n"
-
-        for event in today_events_by_stars:
-            base_text += f"• {format_event(event)}\n"
-        base_text += "\n"
-
-    else:
-        base_text += f"📅 <b>На сегодня:</b> нет {'⭐' * stars} событий\n\n"
-
-    return base_text
+def sort_tomorrow_events(events, importance, offset=0, limit=20):
+    if not events:
+        return "📅 <b>На завтра:</b> нет событий с важностью "+'⭐' * importance
+    
+    events_to_show = events[offset:offset+limit]
+    
+    if not events_to_show:
+        return "Больше нет событий для показа"
+    
+    update_at = events_to_show[0]['update_at']
+    text = f"📊 <b>Экономический календарь</b> (обновлено {update_at})\n\n"
+    text += f"📅 <b>Завтра:</b> показано {offset+1}-{offset+len(events_to_show)} из {len(events)} событий с важностью {'⭐' * importance}\n\n"
+    
+    for event in events_to_show:
+        text += f"• {format_event(event)}\n"
+        
+    return text
 
 
-def sort_week_events(week_events, stars):
-    if week_events:
-        update_at = week_events[0]['update_at']
-
-        base_text = f"📊 <b>Экономический календарь</b> (обновлено {update_at})\n\n"
-    else:
-        base_text = f"📊 <b>Экономический календарь</b>\n\n"
-
-    if week_events and week_events[0]:
-        week_events_by_stars = [event for event in week_events if event['importance'] == stars]
-
-        base_text += f"📅 <b>:</b> {len(week_events_by_stars)} {'⭐' * stars} событий\n"
-
-        for event in week_events_by_stars:
-            base_text += f"• {format_event(event)}\n"
-        base_text += "\n"
-
-    else:
-        base_text += f"📅 <b>На сегодня:</b> нет {'⭐' * stars} событий\n\n"
-
-    return base_text
+def sort_week_events(events, importance, offset=0, limit=20):
+    if not events:
+        return "📅 <b>На неделе:</b> нет событий с важностью " +'⭐'* importance
+    
+    events_to_show = events[offset:offset+limit]
+    
+    if not events_to_show:
+        return "Больше нет событий для показа"
+    
+    update_at = events_to_show[0]['update_at']
+    text = f"📊 <b>Экономический календарь</b> (обновлено {update_at})\n\n"
+    text += f"📅 <b>На неделе:</b> показано {offset+1}-{offset+len(events_to_show)} из {len(events)} событий с важностью {'⭐' * importance}\n\n"
+    
+    for event in events_to_show:
+        text += f"• {format_event(event)}\n"
+        
+    return text
 
 
 def format_crypto_prices(coins_data, offset=0, limit=20):

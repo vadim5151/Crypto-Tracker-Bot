@@ -48,8 +48,8 @@ async def scheduled_parsing_news():
             print(f"{datetime.now()}: Запуск планового парсинга...")
             
             # Очищаем базу данных перед новым парсингом
-            # await drop_database()
-            # print("База данных очищена")
+            await drop_database()
+            print("База данных очищена")
             
             # Создаем таблицы заново
             await create_tables()
