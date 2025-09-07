@@ -20,11 +20,11 @@ btn_calendar_keyboard = InlineKeyboardMarkup(inline_keyboard=[
     ])
 
 
-def create_stars_keyboard(period: str) -> InlineKeyboardMarkup:
+def create_main_calendar_keyboard(period: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-        InlineKeyboardButton(text="◀️ Назад", callback_data="prev_events"),
-        InlineKeyboardButton(text="Еще ▶️", callback_data="more_events")
+            InlineKeyboardButton(text="◀️ Предыдущая страница", callback_data="prev_events"),
+            InlineKeyboardButton(text="Следующая страница ▶️", callback_data="more_events")
         ],
         [
             InlineKeyboardButton(text="◀️ Назад к календарю", callback_data="back_to_calendar")
@@ -37,51 +37,21 @@ def create_stars_keyboard(period: str) -> InlineKeyboardMarkup:
     ])
 
 
-btn_sort_by_stars_today = create_stars_keyboard("today")
-btn_sort_by_stars_tomorrow = create_stars_keyboard("tomorrow")
-btn_sort_by_stars_week = create_stars_keyboard("week")
+btn_sort_by_stars_today = create_main_calendar_keyboard("today")
+btn_sort_by_stars_tomorrow = create_main_calendar_keyboard("tomorrow")
+btn_sort_by_stars_week = create_main_calendar_keyboard("week")
 
 
-def get_back_button(period: str) -> InlineKeyboardMarkup:
-    """Создает кнопку 'Назад' для указанного периода"""
+def get_btn_events_both(period: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="◀️ Назад", callback_data=f"back_to_{period}")]
+        [
+            InlineKeyboardButton(text="◀️ Предыдущая страница", callback_data="prev_events"),
+            InlineKeyboardButton(text="Следующая страница ▶️", callback_data="more_events")
+        ],
+        [
+            InlineKeyboardButton(text="◀️ Назад к календарю", callback_data="back_to_calendar")
+        ]
     ])
-
-
-btn_events_more = InlineKeyboardMarkup(inline_keyboard=[
-    [
-        InlineKeyboardButton(text="Еще ▶️", callback_data="more_events")
-    ],
-    [
-        InlineKeyboardButton(text="◀️ Назад к календарю", callback_data="back_to_calendar")
-    ]
-])
-
-btn_events_prev_only = InlineKeyboardMarkup(inline_keyboard=[
-    [
-        InlineKeyboardButton(text="◀️ Назад", callback_data="prev_events")
-    ],
-    [
-        InlineKeyboardButton(text="◀️ Назад к календарю", callback_data="back_to_calendar")
-    ]
-])
-
-btn_events_both = InlineKeyboardMarkup(inline_keyboard=[
-    [
-        InlineKeyboardButton(text="◀️ Назад", callback_data="prev_events"),
-        InlineKeyboardButton(text="Еще ▶️", callback_data="more_events")
-    ],
-    [
-        InlineKeyboardButton(text="◀️ Назад к календарю", callback_data="back_to_calendar")
-    ]
-])
-
-btn_events_back_only = InlineKeyboardMarkup(inline_keyboard=[
-    [
-        InlineKeyboardButton(text="◀️ Назад к календарю", callback_data="back_to_calendar")
-    ]
-])
 
 
 btn_sort_coins = InlineKeyboardMarkup(inline_keyboard=[
