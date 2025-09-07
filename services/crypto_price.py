@@ -57,24 +57,26 @@ def parse_top_gainers():
     
     soup = bs(response.text, 'html.parser')
 
-    table_coins = soup.find('tbody')
+    table_coins = soup.find_all('div', class_='uikit-col-md-8 uikit-col-sm-16')[0]
     rows = table_coins.find_all('tr')
- 
-    for row in rows:
-        name = row.find('div', class_='sc-4c05d6ef-0 sc-dff2ad65-0 dlQYLv hubuLp')
-        coin_symbol = row.find('div', class_='sc-dff2ad65-2 qKMrr')
-
-        top_gainers.append({
-            'rank_type': 'gainer',
-            'ticker': coin_symbol.find('p').text.strip(),
-            'name': name.find('p').text.strip(),
-            'market_cup': row.find_all('td')[4].text,
-            'change_price': row.find('span', class_='sc-d5c03ba0-0 ivIsIp').text,
-            'price': row.find('span').text
-        })
     
+    try:
+        for row in rows[1:]:
 
-    return top_gainers
+            top_gainers.append({
+                'rank_type': 'gainer',
+                'ticker': row.find('p', class_='sc-71024e3e-0 OqPKt coin-item-symbol').text.strip(),
+                'name': row.find('p', class_='sc-71024e3e-0 ehyBa-d').text.strip(),
+                'market_cup': row.find_all('td')[4].text,
+                'change_price': row.find('span', class_='sc-d5c03ba0-0 ivIsIp').text,
+                'price': row.find('span').text
+            })
+        
+
+        return top_gainers
+    except Exception as e:
+        print(f'Ошибка при парсинге top gainers coins:{e}')
+        return []
 
 
 def parse_top_losers():
@@ -95,31 +97,19 @@ def parse_top_losers():
 
     table_coins = soup.find_all('div', class_='uikit-col-md-8 uikit-col-sm-16')[1]
     rows = table_coins.find_all('tr')
-
-    for row in rows:
-        all_td = row.find_all('td')
-
-        index_volume = 4 
-        if index_volume < len(all_td):
-            volume = all_td[index_volume].text
-        
-        change_price_html = row.find('span', class_='sc-d5c03ba0-0 dJLZma')
-        if change_price_html:
-            change_price = change_price_html.text
-
-        name = row.find('div', class_='sc-4c05d6ef-0 sc-dff2ad65-0 dlQYLv hubuLp')
-        if name:
-            name_coin = name.find('p').text
-            coin_symbol = name.find_all('p')[1].text
-            
+    try:
+        for row in rows[1:]:
             top_losers.append({
                 'rank_type': 'loser',
-                'ticker': coin_symbol,
-                'name': name_coin.strip(),
-                'market_cup': volume.strip(),
-                'change_price': change_price.strip(),
+                'ticker': row.find('p', class_='sc-71024e3e-0 OqPKt coin-item-symbol').text.strip(),
+                'name': row.find('p', class_='sc-71024e3e-0 ehyBa-d').text.strip(),
+                'market_cup': row.find_all('td')[4].text,
+                'change_price': row.find('span', class_='sc-d5c03ba0-0 dJLZma').text,
                 'price': row.find('span').text
             })
 
-    return top_losers
-
+        return top_losers
+    
+    except Exception as e:
+        print(f'Ошибка при парсинге top losers coins: {e}')
+        return []
